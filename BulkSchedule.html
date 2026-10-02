@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bulk Schedule &amp; Dispatch</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50: '#f0fdf4',
+            100: '#dcfce7',
+            200: '#bbf7d0',
+            500: '#22c55e',
+            600: '#16a34a',
+            700: '#15803d',
+            800: '#166534',
+            900: '#14532d',
+          }
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        }
+      }
+    }
+  }
+</script>
+<style data-purpose="custom-scrollbars">
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .animate-spin-slow { animation: spin 1s linear infinite; }
+</style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased font-sans p-4 md:p-6 min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef } = React;
+
+function cx(...args) { return args.filter(Boolean).join(" "); }
+
+/* ---------------- icons (Heroicons-style outline, matching the design export) ---------------- */
+const Icon = ({ children, size = 16, className, style, fill = "none", strokeWidth = 2 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor"
+       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    {children}
+  </svg>
+);
+const SearchIcon = (p) => <Icon {...p}><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></Icon>;
+const InfoIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4m0-4h.01" /></Icon>;
+const SaveIcon = (p) => <Icon {...p}><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></Icon>;
+const CalendarIcon = (p) => <Icon {...p}><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></Icon>;
+const DispatchIcon = (p) => <Icon {...p}><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></Icon>;
+const RepeatIcon = (p) => <Icon {...p}><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></Icon>;
+const RocketIcon = (p) => <Icon {...p}><path d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.58-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.458 14.98 14.98 0 01-2.45-2.45c.019-.104.039-.208.06-.312m0 0a6 6 0 017.38 5.84" /></Icon>;
+const FilterIcon = (p) => <Icon {...p}><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></Icon>;
+const ChevronDownIcon = (p) => <Icon {...p}><path d="M19 9l-7 7-7-7" /></Icon>;
+const ChevronLeftIcon = (p) => <Icon {...p}><path d="M15 19l-7-7 7-7" /></Icon>;
+const ChevronRightIcon = (p) => <Icon {...p}><path d="M9 5l7 7-7 7" /></Icon>;
+const KebabIcon = (p) => <Icon {...p} fill="currentColor" strokeWidth="0"><circle cx="10" cy="5" r="1.6" /><circle cx="10" cy="10" r="1.6" /><circle cx="10" cy="15" r="1.6" /></Icon>;
+const EyeIcon = (p) => <Icon {...p}><path d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><circle cx="12" cy="12" r="3" /></Icon>;
+const EditIcon = (p) => <Icon {...p}><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></Icon>;
+const TrashIcon = (p) => <Icon {...p}><path d="M9.5 9v6m5-6v6M6 6.5l.7 12.1a2 2 0 002 1.9h6.6a2 2 0 002-1.9L18 6.5M4 6.5h16M9.5 6.5V4a1 1 0 011-1h3a1 1 0 011 1v2.5" /></Icon>;
+const CheckCircleIcon = (p) => <Icon {...p}><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></Icon>;
+const XIcon = (p) => <Icon {...p}><path d="M6 18L18 6M6 6l12 12" /></Icon>;
+const LoaderIcon = (p) => <Icon {...p} className={cx(p.className, "animate-spin-slow")}><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36 6.36l-2.12-2.12M8.76 8.76L6.64 6.64m0 10.72l2.12-2.12m6.48-6.48l2.12-2.12" /></Icon>;
+
+/* ---------------- mock data generation ---------------- */
+const NAME_PREFIXES = [
+  "GreenOak","Aster","Lotus","Kaya","Blue Horizon","Sunset","Pine Valley","Northside","Cedar Point","Silver Lake",
+  "Maple","Iron Bridge","Golden Gate","Willow Creek","Crimson","Harbor","Stone Ridge","Amber","Crystal","Emerald",
+  "Falcon","Granite","Hilltop","Ivory","Jade","Kestrel","Lakeside","Meadow","Oakwood","Pearl","Riverside","Sapphire",
+  "Timberline","Vista","Whitestone","Anchor","Birchwood","Coral Bay","Driftwood","Everglade","Foxglove"
+];
+const NAME_SUFFIXES = [
+  "Residence","Clinic","Apartments","Family Home","Office","Plaza","Mall","Towers","Hospital","School",
+  "Hotel","Warehouse","Complex","Center","Building","Park","Villa","Estate","Store","Studio"
+];
+const EQUIPMENT = ["HVAC Unit","Water Heater","Boiler","Solar Inverter","Heat Pump","Air Handler","Chiller","Furnace","Generator","Rooftop Unit"];
+const SERVICES = ["Maintenance","Installation","Repair"];
+const REGIONS = ["North","Central","South","East","West"];
+const QUICK_FILTERS = ["All", "Maintenance", "Installation", "Repair", "North", "Central", "South", "Unscheduled", "Recently Created"];
+const SERVICE_BADGE = { Maintenance: "bg-emerald-50 text-emerald-700", Installation: "bg-purple-50 text-purple-700", Repair: "bg-rose-50 text-rose-700" };
+const STATUS_BADGE = { Unscheduled: "bg-amber-50 text-amber-700", Scheduled: "bg-emerald-50 text-emerald-700" };
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function seededRand(seed) {
+  let x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+function fmtDate(d) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+const REFERENCE_DATE = new Date(2026, 5, 11); // Jun 11, 2026
+
+function generateClients(n) {
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const r1 = seededRand(i * 12.9898);
+    const r2 = seededRand(i * 78.233 + 1);
+    const r3 = seededRand(i * 37.719 + 2);
+    const r4 = seededRand(i * 91.345 + 3);
+    const prefix = NAME_PREFIXES[Math.floor(r1 * NAME_PREFIXES.length)];
+    const suffix = NAME_SUFFIXES[Math.floor(r2 * NAME_SUFFIXES.length)];
+    const service = SERVICES[Math.floor(r3 * SERVICES.length)];
+    const region = REGIONS[Math.floor(r4 * REGIONS.length)];
+    const equipment = EQUIPMENT[Math.floor(seededRand(i * 15.5) * EQUIPMENT.length)];
+    const status = seededRand(i * 3.14 + 5) > 0.22 ? "Unscheduled" : "Scheduled";
+    const daysAgo = Math.floor(seededRand(i * 7.77 + 9) * 45);
+    const created = new Date(REFERENCE_DATE);
+    created.setDate(created.getDate() - daysAgo);
+    list.push({
+      id: "c" + (i + 1),
+      name: prefix + " " + suffix,
+      equipment,
+      code: "C-" + (200 + i),
+      service,
+      region,
+      status,
+      createdISO: created.toISOString().slice(0, 10),
+      created: fmtDate(created),
+      daysAgo,
+    });
+  }
+  return list;
+}
+
+const CLIENTS = generateClients(1245);
+
+/* ---------------- jobs mock data ---------------- */
+const JOB_TYPES = ["Installation", "Maintenance", "Repair", "Emergency"];
+const PRIORITIES = ["Low", "Medium", "High"];
+const JOB_QUICK_FILTERS = ["All", "Unscheduled", "Installation", "Maintenance", "Repair", "High Priority", "Emergency", "Recently Created"];
+const JOB_TYPE_BADGE = {
+  Installation: "bg-purple-50 text-purple-700",
+  Maintenance: "bg-emerald-50 text-emerald-700",
+  Repair: "bg-sky-50 text-sky-700",
+  Emergency: "bg-rose-50 text-rose-700",
+};
+const PRIORITY_TEXT = {
+  High: "text-rose-600 font-semibold",
+  Medium: "text-amber-600 font-semibold",
+  Low: "text-slate-500 font-medium",
+};
+
+function generateJobs(n) {
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const r1 = seededRand(i * 21.17 + 11);
+    const r2 = seededRand(i * 63.29 + 12);
+    const r3 = seededRand(i * 44.71 + 13);
+    const r4 = seededRand(i * 88.13 + 14);
+    const r5 = seededRand(i * 17.31 + 15);
+    const r6 = seededRand(i * 3.3 + 16);
+    const r7 = seededRand(i * 5.55 + 17);
+    const r8 = seededRand(i * 9.09 + 18);
+    const prefix = NAME_PREFIXES[Math.floor(r1 * NAME_PREFIXES.length)];
+    const suffix = NAME_SUFFIXES[Math.floor(r2 * NAME_SUFFIXES.length)];
+    const jobType = r3 > 0.9 ? "Emergency" : JOB_TYPES[Math.floor(r6 * 3)];
+    const priority = jobType === "Emergency" ? "High" : (r7 > 0.66 ? "High" : r7 > 0.33 ? "Medium" : "Low");
+    const region = REGIONS[Math.floor(r4 * REGIONS.length)];
+    const status = r8 > 0.2 ? "Unscheduled" : "Scheduled";
+    const daysAgo = Math.floor(r5 * 45);
+    const created = new Date(REFERENCE_DATE);
+    created.setDate(created.getDate() - daysAgo);
+    list.push({
+      id: "j" + (i + 1),
+      jobNumber: "JOB-" + (10001 + i),
+      jobType,
+      client: prefix + " " + suffix,
+      priority,
+      region,
+      status,
+      createdISO: created.toISOString().slice(0, 10),
+      created: fmtDate(created),
+      daysAgo,
+    });
+  }
+  return list;
+}
+
+const JOBS = generateJobs(1245);
+
+const TECH_FIRST = ["Maya","Omar","Liam","Sophia","Elif","Noah","Ava","Deniz","Lucas","Mia","Emre","Zoe","Kaan","Elena","Arda","Grace","Baran","Nora","Yusuf","Chloe","Mert","Ivy","Cem","Leah","Berk","Nina","Onur","Ruby","Sena","Owen"];
+const TECH_LAST = ["Chen","Kaya","Patel","Lee","Aydın","Garcia","Smith","Yıldız","Brown","Wong","Demir","Taylor","Şahin","Clarke","Öz","Bennett","Kurt","Foster","Aksoy","Reed"];
+const SKILL_POOL = ["Maintenance","Installation","Repair"];
+const TEAMS = ["Team A","Team B","Team C","Team D"];
+const AVATAR_COLORS = ["#16a34a","#a16207","#0369a1","#7e22ce","#be185d","#0e7490","#4d7c0f"];
+
+function generateTechnicians(n) {
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const first = TECH_FIRST[i % TECH_FIRST.length];
+    const last = TECH_LAST[Math.floor(seededRand(i * 5.1) * TECH_LAST.length)];
+    const region = REGIONS[Math.floor(seededRand(i * 9.3 + 1) * (REGIONS.length - 1))]; // bias away from West
+    const skillCount = 1 + Math.floor(seededRand(i * 4.4 + 2) * 2);
+    const skills = [...SKILL_POOL].sort(() => seededRand(i + skillCount) - 0.5).slice(0, skillCount);
+    const team = TEAMS[Math.floor(seededRand(i * 6.6 + 3) * TEAMS.length)];
+    const status = seededRand(i * 2.2 + 4) > 0.18 ? "Available" : "Busy";
+    list.push({
+      id: "t" + (i + 1),
+      name: first + " " + last,
+      region,
+      team,
+      skills,
+      status,
+      color: AVATAR_COLORS[i % AVATAR_COLORS.length],
+    });
+  }
+  return list;
+}
+
+const TECHNICIANS = generateTechnicians(40);
+
+function initials(name) { return name.split(" ").map((w) => w[0]).slice(0, 2).join(""); }
+
+/* ---------------- shared bits ---------------- */
+function Chip({ children, active, onClick, disabled }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled}
+      className={cx(
+        "px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60",
+        active ? "bg-brand-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+      )}>
+      {children}
+    </button>
+  );
+}
+
+function Field({ label, children, className }) {
+  return (
+    <div className={className}>
+      <label className="block text-xs font-semibold text-slate-700 mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = "block w-full py-1.5 px-3 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg text-slate-800 font-medium focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 shadow-sm disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed";
+const selectCls = inputCls + " appearance-none pr-8";
+
+function Tooltip({ text, children }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span className="relative inline-flex" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {children}
+      {show && (
+        <span className="absolute left-1/2 top-[140%] -translate-x-1/2 bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md whitespace-nowrap z-20 shadow-lg">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/* ---------------- pagination helper ---------------- */
+function getPageNumbers(current, total) {
+  const pages = [];
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+  pages.push(1, 2, 3);
+  if (current > 5) pages.push("...");
+  const start = Math.max(4, current - 1);
+  const end = Math.min(total - 3, current + 1);
+  for (let i = start; i <= end; i++) if (!pages.includes(i)) pages.push(i);
+  if (current < total - 4) pages.push("...");
+  pages.push(total);
+  return [...new Set(pages)];
+}
+
+function Pagination({ page, totalPages, onChange }) {
+  const nums = getPageNumbers(page, totalPages);
+  return (
+    <div className="flex items-center gap-1">
+      <button type="button" onClick={() => onChange(Math.max(1, page - 1))} disabled={page === 1}
+        className="p-1 rounded text-slate-400 hover:text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center">
+        <ChevronLeftIcon size={16} />
+      </button>
+      {nums.map((n, i) => n === "..." ? (
+        <span key={"e" + i} className="px-0.5 text-slate-400">...</span>
+      ) : (
+        <button type="button" key={n} onClick={() => onChange(n)}
+          className={cx(
+            "w-6 h-6 flex items-center justify-center font-medium rounded text-xs",
+            n === page ? "border border-brand-600 text-brand-600 bg-emerald-50/50" : "hover:bg-slate-100 text-slate-600"
+          )}>{n}</button>
+      ))}
+      <button type="button" onClick={() => onChange(Math.min(totalPages, page + 1))} disabled={page === totalPages}
+        className="p-1 rounded text-slate-400 hover:text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center">
+        <ChevronRightIcon size={16} />
+      </button>
+    </div>
+  );
+}
+
+/* ---------------- optimization preview map (matches design export exactly) ---------------- */
+function MapPin({ x, y, color, label }) {
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <circle cx="0" cy="-14" fill={color} r="10" stroke="#ffffff" strokeWidth="2" />
+      <path d="M-4,-6 L0,2 L4,-6 Z" fill={color} />
+      <text fill="#ffffff" fontFamily="Inter, sans-serif" fontSize="10" fontWeight="bold" textAnchor="middle" x="0" y="-10">{label}</text>
+    </g>
+  );
+}
+
+function OptimizationMap() {
+  return (
+    <div className="col-span-12 sm:col-span-8 h-56 sm:h-64 rounded-lg overflow-hidden border border-slate-200 relative bg-[#eef5fa]">
+      <svg className="w-full h-full" preserveAspectRatio="xMidYMid slice" viewBox="0 0 450 240" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="waterGrad" x1="0%" x2="30%" y1="100%" y2="60%">
+            <stop offset="0%" stopColor="#bae6fd" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#e0f2fe" stopOpacity="0.3" />
+          </linearGradient>
+        </defs>
+        <rect fill="#f8fafc" height="240" width="450" />
+        <path d="M0,170 C40,165 70,195 90,240 L0,240 Z" fill="url(#waterGrad)" />
+        <path d="M0,190 C30,190 60,210 80,240 L0,240 Z" fill="#7dd3fc" opacity="0.5" />
+        <path d="M170,0 C175,40 160,80 185,120 C195,135 220,130 240,135 C270,140 280,110 320,110" fill="none" opacity="0.8" stroke="#bae6fd" strokeLinecap="round" strokeWidth="4" />
+        <path d="M90,70 C140,90 200,120 250,135" fill="none" opacity="0.7" stroke="#bae6fd" strokeWidth="3" />
+        <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="450" y1="40" y2="40" />
+        <line stroke="#cbd5e1" strokeWidth="1.5" x1="0" x2="450" y1="85" y2="85" />
+        <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="450" y1="145" y2="145" />
+        <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="450" y1="200" y2="200" />
+        <line stroke="#e2e8f0" strokeWidth="1.5" x1="60" x2="60" y1="0" y2="240" />
+        <line stroke="#cbd5e1" strokeWidth="1.5" x1="150" x2="150" y1="0" y2="240" />
+        <line stroke="#e2e8f0" strokeWidth="1.5" x1="260" x2="260" y1="0" y2="240" />
+        <line stroke="#cbd5e1" strokeWidth="1.5" x1="360" x2="360" y1="0" y2="240" />
+        <line stroke="#f1f5f9" strokeDasharray="6,6" strokeWidth="3" x1="30" x2="300" y1="0" y2="240" />
+        <line stroke="#f1f5f9" strokeWidth="2.5" x1="420" x2="200" y1="30" y2="220" />
+        <path d="M 100,50 C 70,80 60,110 65,130 C 70,165 95,165 100,190 C 115,205 140,195 160,215 C 200,225 250,230 300,230 C 330,225 350,215 365,185 C 375,170 360,150 330,135 C 310,120 290,75 260,75 C 235,75 220,105 190,85 C 160,65 130,50 100,50 Z" fill="none" stroke="#15803d" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
+        <MapPin x={98} y={48} color="#16a34a" label="1" />
+        <MapPin x={192} y={70} color="#7e22ce" label="2" />
+        <MapPin x={325} y={125} color="#ea580c" label="3" />
+        <MapPin x={365} y={175} color="#16a34a" label="4" />
+        <MapPin x={300} y={220} color="#16a34a" label="5" />
+        <MapPin x={65} y={125} color="#16a34a" label="S" />
+      </svg>
+    </div>
+  );
+}
+
+/* ---------------- main component ---------------- */
+function BulkScheduleClient() {
+  const [sourceType, setSourceType] = useState("clients");
+
+  // templates
+  const [templates, setTemplates] = useState(["Weekly Maintenance", "North Region Dispatch"]);
+  const [templateChoice, setTemplateChoice] = useState("");
+
+  // client filters
+  const [query, setQuery] = useState("");
+  const [quickFilter, setQuickFilter] = useState("All");
+  const [advOpen, setAdvOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [regionFilter, setRegionFilter] = useState("All");
+  const [createdDateFilter, setCreatedDateFilter] = useState("");
+
+  // pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  // client selection
+  const [selectedClients, setSelectedClients] = useState(() => new Set(CLIENTS.slice(0, 50).map((c) => c.id)));
+  const [removedIds, setRemovedIds] = useState(() => new Set());
+  const [openRowMenu, setOpenRowMenu] = useState(null);
+
+  // job filters
+  const [jobQuery, setJobQuery] = useState("");
+  const [jobQuickFilter, setJobQuickFilter] = useState("All");
+  const [jobAdvOpen, setJobAdvOpen] = useState(false);
+  const [jobStatusFilter, setJobStatusFilter] = useState("All");
+  const [jobPriorityFilter, setJobPriorityFilter] = useState("All");
+  const [jobRegionFilter, setJobRegionFilter] = useState("All");
+  const [jobCreatedDateFilter, setJobCreatedDateFilter] = useState("");
+
+  // job pagination
+  const [jobPage, setJobPage] = useState(1);
+  const [jobPageSize, setJobPageSize] = useState(50);
+
+  // job selection
+  const [selectedJobs, setSelectedJobs] = useState(() => new Set(JOBS.slice(0, 75).map((j) => j.id)));
+  const [removedJobIds, setRemovedJobIds] = useState(() => new Set());
+  const [openJobRowMenu, setOpenJobRowMenu] = useState(null);
+
+  useEffect(() => {
+    const closeMenu = () => { setOpenRowMenu(null); setOpenJobRowMenu(null); };
+    document.addEventListener("click", closeMenu);
+    return () => document.removeEventListener("click", closeMenu);
+  }, []);
+
+  // schedule config
+  const [scheduleType, setScheduleType] = useState("specific");
+  const [specificDate, setSpecificDate] = useState("2026-06-11");
+  const [betweenStart, setBetweenStart] = useState("2026-06-11");
+  const [betweenEnd, setBetweenEnd] = useState("2026-06-18");
+  const [frequency, setFrequency] = useState("Weekly");
+  const [interval, setInterval_] = useState(1);
+  const [recurStart, setRecurStart] = useState("2026-06-11");
+  const [endType, setEndType] = useState("none"); // none | after | by
+  const [occurrences, setOccurrences] = useState(12);
+  const [endByDate, setEndByDate] = useState("2026-09-11");
+
+  // technicians
+  const [techQuery, setTechQuery] = useState("");
+  const [techRegionFilter, setTechRegionFilter] = useState("All");
+  const [techSkillFilter, setTechSkillFilter] = useState("All");
+  const [techTeamFilter, setTechTeamFilter] = useState("All");
+  const [techPanelOpen, setTechPanelOpen] = useState(false);
+  const [techStatusOnlyAvailable, setTechStatusOnlyAvailable] = useState(false);
+  const [selectedTechs, setSelectedTechs] = useState(() => new Set());
+  const didInitTechs = useRef(false);
+
+  // flow
+  const [stage, setStage] = useState("select"); // select | optimizing | preview | done
+  const [finalAction, setFinalAction] = useState(null); // 'scheduled' | 'dispatched'
+  const [plan, setPlan] = useState([]);
+
+  const filteredClients = useMemo(() => {
+    return CLIENTS.filter((c) => {
+      if (removedIds.has(c.id)) return false;
+      const matchesQuery = (c.name + " " + c.code + " " + c.service + " " + c.region + " " + c.equipment).toLowerCase().includes(query.toLowerCase());
+      const matchesStatus = statusFilter === "All" || c.status === statusFilter;
+      const matchesRegion = regionFilter === "All" || c.region === regionFilter;
+      const matchesCreated = !createdDateFilter || c.createdISO === createdDateFilter;
+      const matchesQuick =
+        quickFilter === "All" ||
+        c.service === quickFilter ||
+        c.region === quickFilter ||
+        (quickFilter === "Unscheduled" && c.status === "Unscheduled") ||
+        (quickFilter === "Recently Created" && c.daysAgo <= 3);
+      return matchesQuery && matchesStatus && matchesRegion && matchesCreated && matchesQuick;
+    });
+  }, [query, statusFilter, regionFilter, createdDateFilter, quickFilter, removedIds]);
+
+  const viewClientDetails = (c) => {
+    alert(`${c.name}\nCode: ${c.code}\nEquipment: ${c.equipment}\nService: ${c.service}\nRegion: ${c.region}\nStatus: ${c.status}\nCreated: ${c.created}`);
+  };
+  const editClient = (c) => {
+    alert(`Editing "${c.name}" is not available in this prototype.`);
+  };
+  const removeClient = (c) => {
+    setRemovedIds((prev) => { const next = new Set(prev); next.add(c.id); return next; });
+    setSelectedClients((prev) => { const next = new Set(prev); next.delete(c.id); return next; });
+  };
+
+  useEffect(() => { setPage(1); }, [query, statusFilter, regionFilter, createdDateFilter, quickFilter, pageSize]);
+
+  const filteredJobs = useMemo(() => {
+    return JOBS.filter((j) => {
+      if (removedJobIds.has(j.id)) return false;
+      const matchesQuery = (j.jobNumber + " " + j.client + " " + j.jobType + " " + j.region).toLowerCase().includes(jobQuery.toLowerCase());
+      const matchesStatus = jobStatusFilter === "All" || j.status === jobStatusFilter;
+      const matchesPriority = jobPriorityFilter === "All" || j.priority === jobPriorityFilter;
+      const matchesRegion = jobRegionFilter === "All" || j.region === jobRegionFilter;
+      const matchesCreated = !jobCreatedDateFilter || j.createdISO === jobCreatedDateFilter;
+      const matchesQuick =
+        jobQuickFilter === "All" ||
+        j.jobType === jobQuickFilter ||
+        (jobQuickFilter === "Unscheduled" && j.status === "Unscheduled") ||
+        (jobQuickFilter === "High Priority" && j.priority === "High") ||
+        (jobQuickFilter === "Recently Created" && j.daysAgo <= 3);
+      return matchesQuery && matchesStatus && matchesPriority && matchesRegion && matchesCreated && matchesQuick;
+    });
+  }, [jobQuery, jobStatusFilter, jobPriorityFilter, jobRegionFilter, jobCreatedDateFilter, jobQuickFilter, removedJobIds]);
+
+  const viewJobDetails = (j) => {
+    alert(`${j.jobNumber}\nClient: ${j.client}\nJob Type: ${j.jobType}\nPriority: ${j.priority}\nRegion: ${j.region}\nStatus: ${j.status}\nCreated: ${j.created}`);
+  };
+  const editJob = (j) => {
+    alert(`Editing "${j.jobNumber}" is not available in this prototype.`);
+  };
+  const removeJob = (j) => {
+    setRemovedJobIds((prev) => { const next = new Set(prev); next.add(j.id); return next; });
+    setSelectedJobs((prev) => { const next = new Set(prev); next.delete(j.id); return next; });
+  };
+
+  useEffect(() => { setJobPage(1); }, [jobQuery, jobStatusFilter, jobPriorityFilter, jobRegionFilter, jobCreatedDateFilter, jobQuickFilter, jobPageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredClients.length / pageSize));
+  const pageClients = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredClients.slice(start, start + pageSize);
+  }, [filteredClients, page, pageSize]);
+
+  const allPageSelected = pageClients.length > 0 && pageClients.every((c) => selectedClients.has(c.id));
+  const allFilteredSelected = filteredClients.length > 0 && filteredClients.every((c) => selectedClients.has(c.id));
+
+  const togglePageSelectAll = () => {
+    setSelectedClients((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) pageClients.forEach((c) => next.delete(c.id));
+      else pageClients.forEach((c) => next.add(c.id));
+      return next;
+    });
+  };
+  const selectAllFiltered = () => {
+    setSelectedClients((prev) => {
+      if (allFilteredSelected) return new Set();
+      const next = new Set(prev);
+      filteredClients.forEach((c) => next.add(c.id));
+      return next;
+    });
+  };
+  const toggleClient = (id) => {
+    setSelectedClients((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const clearAllFilters = () => {
+    setQuery(""); setQuickFilter("All"); setStatusFilter("All"); setRegionFilter("All");
+    setCreatedDateFilter(""); setAdvOpen(false);
+  };
+
+  const totalJobPages = Math.max(1, Math.ceil(filteredJobs.length / jobPageSize));
+  const pageJobs = useMemo(() => {
+    const start = (jobPage - 1) * jobPageSize;
+    return filteredJobs.slice(start, start + jobPageSize);
+  }, [filteredJobs, jobPage, jobPageSize]);
+
+  const allJobPageSelected = pageJobs.length > 0 && pageJobs.every((j) => selectedJobs.has(j.id));
+  const allJobFilteredSelected = filteredJobs.length > 0 && filteredJobs.every((j) => selectedJobs.has(j.id));
+
+  const toggleJobPageSelectAll = () => {
+    setSelectedJobs((prev) => {
+      const next = new Set(prev);
+      if (allJobPageSelected) pageJobs.forEach((j) => next.delete(j.id));
+      else pageJobs.forEach((j) => next.add(j.id));
+      return next;
+    });
+  };
+  const selectAllFilteredJobs = () => {
+    setSelectedJobs((prev) => {
+      if (allJobFilteredSelected) return new Set();
+      const next = new Set(prev);
+      filteredJobs.forEach((j) => next.add(j.id));
+      return next;
+    });
+  };
+  const toggleJob = (id) => {
+    setSelectedJobs((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const clearAllJobFilters = () => {
+    setJobQuery(""); setJobQuickFilter("All"); setJobStatusFilter("All"); setJobPriorityFilter("All");
+    setJobRegionFilter("All"); setJobCreatedDateFilter(""); setJobAdvOpen(false);
+  };
+
+  const chosenRecords = useMemo(() => {
+    if (sourceType === "jobs") {
+      return JOBS.filter((j) => selectedJobs.has(j.id)).map((j) => ({
+        id: j.id,
+        name: j.client,
+        service: j.jobType === "Emergency" ? "Repair" : j.jobType,
+        region: j.region,
+      }));
+    }
+    return CLIENTS.filter((c) => selectedClients.has(c.id));
+  }, [sourceType, selectedClients, selectedJobs]);
+  const dateConfigured =
+    (scheduleType === "specific" && !!specificDate) ||
+    (scheduleType === "between" && !!betweenStart && !!betweenEnd) ||
+    (scheduleType === "recurring" && !!recurStart);
+
+  const matchedTechs = useMemo(() => {
+    const neededServices = new Set(chosenRecords.map((c) => c.service));
+    const neededRegions = new Set(chosenRecords.map((c) => c.region));
+    return TECHNICIANS.filter((t) => t.skills.some((s) => neededServices.has(s)) || neededRegions.has(t.region))
+      .filter((t) => techRegionFilter === "All" || t.region === techRegionFilter)
+      .filter((t) => techSkillFilter === "All" || t.skills.includes(techSkillFilter))
+      .filter((t) => techTeamFilter === "All" || t.team === techTeamFilter)
+      .filter((t) => !techStatusOnlyAvailable || t.status === "Available")
+      .filter((t) => t.name.toLowerCase().includes(techQuery.toLowerCase()));
+  }, [chosenRecords, techRegionFilter, techSkillFilter, techTeamFilter, techStatusOnlyAvailable, techQuery]);
+
+  useEffect(() => {
+    if (chosenRecords.length === 0) { setSelectedTechs(new Set()); return; }
+    if (didInitTechs.current) return;
+    didInitTechs.current = true;
+    const neededServices = new Set(chosenRecords.map((c) => c.service));
+    const neededRegions = new Set(chosenRecords.map((c) => c.region));
+    const auto = TECHNICIANS.filter((t) => t.status === "Available" && (t.skills.some((s) => neededServices.has(s)) || neededRegions.has(t.region)));
+    setSelectedTechs(new Set(auto.slice(0, 12).map((t) => t.id)));
+    // eslint-disable-next-line
+  }, [chosenRecords.length > 0]);
+
+  const toggleTech = (id) => {
+    setSelectedTechs((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const canRunPreview = chosenRecords.length > 0 && dateConfigured && selectedTechs.size > 0;
+
+  const runOptimize = (onDone) => {
+    setStage("optimizing");
+    setTimeout(() => {
+      const usableTechs = TECHNICIANS.filter((t) => selectedTechs.has(t.id));
+      const pool = usableTechs.length ? usableTechs : matchedTechs;
+      const generated = chosenRecords.map((client, i) => {
+        const tech = pool[i % pool.length];
+        const hour = 8 + (i % 9);
+        return { client, tech, time: `${pad(hour)}:00`, sequence: i + 1, distanceKm: (3.2 + i * 1.8).toFixed(1) };
+      });
+      setPlan(generated);
+      if (onDone) {
+        setFinalAction(onDone);
+        setStage("done");
+      } else {
+        setStage("preview");
+      }
+    }, 1300);
+  };
+
+  const headerAction = (action) => {
+    if (stage === "preview") { finalize(action); return; }
+    if (stage === "select" && canRunPreview) { runOptimize(action); return; }
+  };
+
+  const finalize = (action) => {
+    setFinalAction(action);
+    setStage("done");
+  };
+
+  const reset = () => {
+    setStage("select");
+    setFinalAction(null);
+    setSelectedClients(new Set());
+    setSelectedJobs(new Set());
+    setPlan([]);
+    didInitTechs.current = false;
+  };
+
+  const saveTemplate = () => {
+    const name = window.prompt("Enter a template name (e.g. 'Weekly Maintenance'):", "");
+    if (name) setTemplates((prev) => [...prev, name]);
+  };
+
+  const applyTemplate = (name) => {
+    setTemplateChoice(name);
+    if (!name) return;
+    if (name.toLowerCase().includes("weekly")) {
+      setQuickFilter("Maintenance");
+      setScheduleType("recurring");
+      setFrequency("Weekly");
+    } else if (name.toLowerCase().includes("north")) {
+      setQuickFilter("North");
+      setScheduleType("specific");
+    }
+  };
+
+  const totalDistance = plan.reduce((s, r) => s + parseFloat(r.distanceKm), 0).toFixed(1);
+  const estDurationDays = (plan.length * 0.6 + 0.4).toFixed(1);
+  const locked = stage !== "select";
+  const headerBtnActive = stage === "preview" || (stage === "select" && canRunPreview);
+
+  const scheduleTypeCards = [
+    { key: "specific", label: "Specific Date", desc: "Schedule all selected visits on a specific date.", Icon: CalendarIcon },
+    { key: "between", label: "Between Dates", desc: "Schedule visits in a date range.", Icon: CalendarIcon },
+    { key: "recurring", label: "Recurring", desc: "Repeat on specific intervals.", Icon: RepeatIcon },
+  ];
+
+  return (
+    <div className="max-w-screen-2xl mx-auto flex flex-col">
+
+      {/* ============ HEADER ============ */}
+      <header className="mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">{sourceType === "jobs" ? "Bulk Job Schedule & Dispatch" : "Bulk Schedule & Dispatch"}</h1>
+              <Tooltip text={sourceType === "jobs" ? "Select jobs, choose the scheduling mode, enter only the necessary fields, pick technicians, and schedule visits in one action." : "Select clients or jobs, choose scheduling options, and optimize in one action."}>
+                <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors" title="Help & info">
+                  <InfoIcon size={16} />
+                </button>
+              </Tooltip>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{sourceType === "jobs" ? "Select jobs, choose the scheduling mode, enter only the necessary fields, pick technicians, and schedule visits in one action." : "Select clients or jobs, choose scheduling options, and optimize in one action."}</p>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button type="button" onClick={saveTemplate}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition">
+              <SaveIcon size={16} className="text-emerald-600" /> Save Template
+            </button>
+            <button type="button" onClick={() => headerAction("scheduled")} disabled={stage === "optimizing" || stage === "done" || (stage === "select" && !canRunPreview)}
+              className={cx(
+                "inline-flex items-center gap-2 px-3.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg shadow-sm transition border",
+                headerBtnActive ? "text-slate-700 bg-white border-slate-300 hover:bg-slate-50" : "text-slate-400 bg-slate-100 border-slate-200 cursor-not-allowed"
+              )}>
+              <CalendarIcon size={16} className={headerBtnActive ? "text-emerald-600" : "text-slate-400"} /> Schedule
+            </button>
+            <button type="button" onClick={() => headerAction("dispatched")} disabled={stage === "optimizing" || stage === "done" || (stage === "select" && !canRunPreview)}
+              className={cx(
+                "inline-flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg shadow-sm transition",
+                headerBtnActive ? "text-white bg-brand-700 hover:bg-brand-800 shadow-emerald-900/10" : "text-slate-400 bg-slate-200 cursor-not-allowed"
+              )}>
+              <DispatchIcon size={16} /> Schedule &amp; Dispatch
+            </button>
+          </div>
+        </div>
+
+        {/* Source Type & Template Bar */}
+        <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm">
+          <div className="flex items-center gap-3">
+            <span className="font-medium text-slate-700">Source Type</span>
+            <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-50">
+              <button type="button" onClick={() => setSourceType("clients")} disabled={locked}
+                className={cx("inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60",
+                  sourceType === "clients" ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900")}>
+                <span className={cx("w-2 h-2 rounded-full", sourceType === "clients" ? "bg-brand-600" : "border border-slate-400")}></span>
+                Clients
+              </button>
+              <button type="button" onClick={() => setSourceType("jobs")} disabled={locked}
+                className={cx("inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60",
+                  sourceType === "jobs" ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900")}>
+                <span className={cx("w-2 h-2 rounded-full", sourceType === "jobs" ? "bg-brand-600" : "border border-slate-400")}></span>
+                Jobs
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <label className="text-xs sm:text-sm text-slate-600 font-medium" htmlFor="template-select">Use Template</label>
+            <div className="relative">
+              <select id="template-select" value={templateChoice} onChange={(e) => applyTemplate(e.target.value)} disabled={locked}
+                className="block w-48 text-xs sm:text-sm rounded-lg border-slate-300 bg-white py-1.5 pl-3 pr-8 text-slate-700 focus:border-brand-600 focus:ring-brand-600 shadow-sm appearance-none disabled:bg-slate-50 disabled:text-slate-400">
+                <option value="">Select a template...</option>
+                {templates.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <ChevronDownIcon size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ============ MAIN DASHBOARD ============ */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        {/* ---- LEFT: Select Clients ---- */}
+        {sourceType === "clients" && (
+        <section className="lg:col-span-6 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">1. Select Clients</h2>
+            <span className="text-xs text-slate-500 font-normal">{filteredClients.length.toLocaleString()} results</span>
+          </div>
+          <div className="p-4 space-y-3.5">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <SearchIcon size={16} />
+                </div>
+                <input value={query} onChange={(e) => setQuery(e.target.value)} disabled={locked}
+                  className="block w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-slate-50/50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 transition disabled:cursor-not-allowed"
+                  placeholder="Search client, service, location..." type="text" />
+              </div>
+              <button type="button" onClick={() => setAdvOpen((v) => !v)} disabled={locked}
+                className={cx("inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 border rounded-lg shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60",
+                  advOpen ? "bg-slate-100 border-slate-300" : "bg-white border-slate-300 hover:bg-slate-50")}>
+                <FilterIcon size={14} className="text-slate-600" /> Filters
+              </button>
+              <button type="button" onClick={clearAllFilters} disabled={locked}
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline px-1 disabled:cursor-not-allowed disabled:opacity-60">
+                Clear All
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Quick Filters</div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {QUICK_FILTERS.map((f) => (
+                  <Chip key={f} active={quickFilter === f} onClick={() => setQuickFilter(f)} disabled={locked}>{f}</Chip>
+                ))}
+              </div>
+            </div>
+
+            <div onClick={() => !locked && setAdvOpen((v) => !v)}
+              className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-700 font-medium cursor-pointer select-none">
+              <span>Advanced Filters</span>
+              <ChevronDownIcon size={16} className={cx("text-slate-500 transition-transform", advOpen && "rotate-180")} />
+            </div>
+            {advOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <Field label="Status">
+                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} disabled={locked} className={selectCls}>
+                    <option>All</option><option>Unscheduled</option><option>Scheduled</option>
+                  </select>
+                </Field>
+                <Field label="Region">
+                  <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} disabled={locked} className={selectCls}>
+                    <option value="All">All Regions</option>
+                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </Field>
+                <Field label="Equipment">
+                  <select disabled value="All" className={selectCls}><option value="All">All Equipment</option></select>
+                </Field>
+                <Field label="Created Date">
+                  <input type="date" value={createdDateFilter} onChange={(e) => setCreatedDateFilter(e.target.value)} disabled={locked} className={inputCls} />
+                </Field>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1 pb-0.5 text-xs flex-wrap">
+              <input type="checkbox" checked={allPageSelected} onChange={togglePageSelectAll} disabled={locked}
+                className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600 disabled:cursor-not-allowed" />
+              <span className="font-semibold text-slate-800">{selectedClients.size.toLocaleString()} selected</span>
+              <button type="button" onClick={selectAllFiltered} disabled={locked} className="text-brand-600 font-medium hover:underline ml-2 disabled:cursor-not-allowed disabled:opacity-60">
+                {allFilteredSelected ? "Clear Selection" : `Select All (${filteredClients.length.toLocaleString()})`}
+              </button>
+              <span className="text-slate-400 ml-auto">{filteredClients.length === 0 ? "0 results" : `Page ${page} of ${totalPages}`}</span>
+            </div>
+          </div>
+
+          {/* Clients Table */}
+          <div className="overflow-x-auto border-t border-slate-200 max-h-[420px] overflow-y-auto">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                <tr>
+                  <th className="py-2.5 pl-4 pr-1 w-6"></th>
+                  <th className="py-2.5 px-2">Client Name</th>
+                  <th className="py-2.5 px-2">Client Code</th>
+                  <th className="py-2.5 px-2">Service Type</th>
+                  <th className="py-2.5 px-2">Region</th>
+                  <th className="py-2.5 px-2">Status</th>
+                  <th className="py-2.5 px-2">Created On</th>
+                  <th className="py-2.5 pr-4 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pageClients.map((c) => (
+                  <tr key={c.id} className={cx("hover:bg-slate-50/70 transition", selectedClients.has(c.id) && "bg-emerald-50/40")}>
+                    <td className="py-3 pl-4 pr-1">
+                      <input type="checkbox" checked={selectedClients.has(c.id)} onChange={() => toggleClient(c.id)} disabled={locked}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600 disabled:cursor-not-allowed" />
+                    </td>
+                    <td className="py-3 px-2 cursor-pointer" onClick={() => !locked && toggleClient(c.id)}>
+                      <div className="font-semibold text-slate-900 whitespace-nowrap">{c.name}</div>
+                      <div className="text-[11px] text-slate-400">{c.equipment}</div>
+                    </td>
+                    <td className="py-3 px-2 text-slate-500 font-medium">{c.code}</td>
+                    <td className="py-3 px-2">
+                      <span className={cx("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium", SERVICE_BADGE[c.service])}>{c.service}</span>
+                    </td>
+                    <td className="py-3 px-2 text-slate-600">{c.region}</td>
+                    <td className="py-3 px-2">
+                      <span className={cx("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium", STATUS_BADGE[c.status])}>{c.status}</span>
+                    </td>
+                    <td className="py-3 px-2 text-slate-500 whitespace-nowrap">{c.created}</td>
+                    <td className="py-3 pr-4 text-right relative" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => setOpenRowMenu(openRowMenu === c.id ? null : c.id)} className="text-slate-400 hover:text-slate-600">
+                        <KebabIcon size={16} />
+                      </button>
+                      {openRowMenu === c.id && (
+                        <div className="absolute right-4 top-7 z-30 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[160px] overflow-hidden text-left">
+                          <button type="button" onClick={() => { viewClientDetails(c); setOpenRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
+                            <EyeIcon size={14} /> View Details
+                          </button>
+                          <button type="button" onClick={() => { editClient(c); setOpenRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 border-t border-slate-100">
+                            <EditIcon size={14} /> Edit Client
+                          </button>
+                          <button type="button" onClick={() => { removeClient(c); setOpenRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 border-t border-slate-100">
+                            <TrashIcon size={14} /> Remove from List
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {filteredClients.length === 0 && (
+                  <tr><td colSpan="8" className="py-6 px-4 text-center text-slate-400">No clients match the current filters.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-3 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div>{filteredClients.length === 0 ? "Showing 0 of 0" : `Showing ${(page - 1) * pageSize + 1} to ${Math.min(page * pageSize, filteredClients.length)} of ${filteredClients.length.toLocaleString()}`}</div>
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} disabled={locked}
+              className="text-xs border-slate-200 rounded py-1 pl-2 pr-6 text-slate-600 focus:ring-brand-600 focus:border-brand-600 disabled:opacity-60">
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+            </select>
+          </div>
+        </section>
+        )}
+
+        {/* ---- LEFT: Select Jobs ---- */}
+        {sourceType === "jobs" && (
+        <section className="lg:col-span-6 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">1. Select Jobs</h2>
+            <span className="text-xs text-slate-500 font-normal">{filteredJobs.length.toLocaleString()} results</span>
+          </div>
+          <div className="p-4 space-y-3.5">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <SearchIcon size={16} />
+                </div>
+                <input value={jobQuery} onChange={(e) => setJobQuery(e.target.value)} disabled={locked}
+                  className="block w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-slate-50/50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 transition disabled:cursor-not-allowed"
+                  placeholder="Search job, client, service, location..." type="text" />
+              </div>
+              <button type="button" onClick={() => setJobAdvOpen((v) => !v)} disabled={locked}
+                className={cx("inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 border rounded-lg shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60",
+                  jobAdvOpen ? "bg-slate-100 border-slate-300" : "bg-white border-slate-300 hover:bg-slate-50")}>
+                <FilterIcon size={14} className="text-slate-600" /> Filters
+              </button>
+              <button type="button" onClick={clearAllJobFilters} disabled={locked}
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline px-1 disabled:cursor-not-allowed disabled:opacity-60">
+                Clear All
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Quick Filters</div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {JOB_QUICK_FILTERS.map((f) => (
+                  <Chip key={f} active={jobQuickFilter === f} onClick={() => setJobQuickFilter(f)} disabled={locked}>{f}</Chip>
+                ))}
+              </div>
+            </div>
+
+            <div onClick={() => !locked && setJobAdvOpen((v) => !v)}
+              className="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-700 font-medium cursor-pointer select-none">
+              <span>Advanced Filters</span>
+              <ChevronDownIcon size={16} className={cx("text-slate-500 transition-transform", jobAdvOpen && "rotate-180")} />
+            </div>
+            {jobAdvOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <Field label="Status">
+                  <select value={jobStatusFilter} onChange={(e) => setJobStatusFilter(e.target.value)} disabled={locked} className={selectCls}>
+                    <option>All</option><option>Unscheduled</option><option>Scheduled</option>
+                  </select>
+                </Field>
+                <Field label="Priority">
+                  <select value={jobPriorityFilter} onChange={(e) => setJobPriorityFilter(e.target.value)} disabled={locked} className={selectCls}>
+                    <option value="All">All Priorities</option>
+                    {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </Field>
+                <Field label="Region">
+                  <select value={jobRegionFilter} onChange={(e) => setJobRegionFilter(e.target.value)} disabled={locked} className={selectCls}>
+                    <option value="All">All Regions</option>
+                    {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </Field>
+                <Field label="Created Date">
+                  <input type="date" value={jobCreatedDateFilter} onChange={(e) => setJobCreatedDateFilter(e.target.value)} disabled={locked} className={inputCls} />
+                </Field>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1 pb-0.5 text-xs flex-wrap">
+              <input type="checkbox" checked={allJobPageSelected} onChange={toggleJobPageSelectAll} disabled={locked}
+                className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600 disabled:cursor-not-allowed" />
+              <span className="font-semibold text-slate-800">{selectedJobs.size.toLocaleString()} selected</span>
+              <button type="button" onClick={selectAllFilteredJobs} disabled={locked} className="text-brand-600 font-medium hover:underline ml-2 disabled:cursor-not-allowed disabled:opacity-60">
+                {allJobFilteredSelected ? "Clear Selection" : `Select All (${filteredJobs.length.toLocaleString()})`}
+              </button>
+              <span className="text-slate-400 ml-auto">{filteredJobs.length === 0 ? "0 results" : `Page ${jobPage} of ${totalJobPages}`}</span>
+            </div>
+          </div>
+
+          {/* Jobs Table */}
+          <div className="overflow-x-auto border-t border-slate-200 max-h-[420px] overflow-y-auto">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                <tr>
+                  <th className="py-2.5 pl-4 pr-1 w-6"></th>
+                  <th className="py-2.5 px-2">Job #</th>
+                  <th className="py-2.5 px-2">Job Type</th>
+                  <th className="py-2.5 px-2">Client</th>
+                  <th className="py-2.5 px-2">Priority</th>
+                  <th className="py-2.5 px-2">Region</th>
+                  <th className="py-2.5 px-2">Status</th>
+                  <th className="py-2.5 px-2">Created On</th>
+                  <th className="py-2.5 pr-4 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {pageJobs.map((j) => (
+                  <tr key={j.id} className={cx("hover:bg-slate-50/70 transition", selectedJobs.has(j.id) && "bg-emerald-50/40")}>
+                    <td className="py-3 pl-4 pr-1">
+                      <input type="checkbox" checked={selectedJobs.has(j.id)} onChange={() => toggleJob(j.id)} disabled={locked}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600 disabled:cursor-not-allowed" />
+                    </td>
+                    <td className="py-3 px-2 font-semibold text-slate-900 whitespace-nowrap cursor-pointer" onClick={() => !locked && toggleJob(j.id)}>{j.jobNumber}</td>
+                    <td className="py-3 px-2">
+                      <span className={cx("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium", JOB_TYPE_BADGE[j.jobType])}>{j.jobType}</span>
+                    </td>
+                    <td className="py-3 px-2 text-slate-700 whitespace-nowrap">{j.client}</td>
+                    <td className="py-3 px-2 whitespace-nowrap"><span className={cx("text-xs", PRIORITY_TEXT[j.priority])}>{j.priority}</span></td>
+                    <td className="py-3 px-2 text-slate-600">{j.region}</td>
+                    <td className="py-3 px-2">
+                      <span className={cx("inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium", STATUS_BADGE[j.status])}>{j.status}</span>
+                    </td>
+                    <td className="py-3 px-2 text-slate-500 whitespace-nowrap">{j.created}</td>
+                    <td className="py-3 pr-4 text-right relative" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => setOpenJobRowMenu(openJobRowMenu === j.id ? null : j.id)} className="text-slate-400 hover:text-slate-600">
+                        <KebabIcon size={16} />
+                      </button>
+                      {openJobRowMenu === j.id && (
+                        <div className="absolute right-4 top-7 z-30 bg-white border border-slate-200 rounded-lg shadow-lg min-w-[160px] overflow-hidden text-left">
+                          <button type="button" onClick={() => { viewJobDetails(j); setOpenJobRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50">
+                            <EyeIcon size={14} /> View Details
+                          </button>
+                          <button type="button" onClick={() => { editJob(j); setOpenJobRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 border-t border-slate-100">
+                            <EditIcon size={14} /> Edit Job
+                          </button>
+                          <button type="button" onClick={() => { removeJob(j); setOpenJobRowMenu(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 border-t border-slate-100">
+                            <TrashIcon size={14} /> Remove from List
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {filteredJobs.length === 0 && (
+                  <tr><td colSpan="9" className="py-6 px-4 text-center text-slate-400">No jobs match the current filters.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-3 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div>{filteredJobs.length === 0 ? "Showing 0 of 0" : `Showing ${(jobPage - 1) * jobPageSize + 1} to ${Math.min(jobPage * jobPageSize, filteredJobs.length)} of ${filteredJobs.length.toLocaleString()}`}</div>
+            <Pagination page={jobPage} totalPages={totalJobPages} onChange={setJobPage} />
+            <select value={jobPageSize} onChange={(e) => setJobPageSize(Number(e.target.value))} disabled={locked}
+              className="text-xs border-slate-200 rounded py-1 pl-2 pr-6 text-slate-600 focus:ring-brand-600 focus:border-brand-600 disabled:opacity-60">
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+              <option value={200}>200 / page</option>
+            </select>
+          </div>
+        </section>
+        )}
+
+        {/* ---- RIGHT: Scheduling Configuration + Technicians ---- */}
+        <div className="lg:col-span-6 space-y-5 flex flex-col">
+          <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+            <h2 className="text-sm font-semibold text-slate-900 mb-3">2. Scheduling Configuration</h2>
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-2">Schedule Type</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {scheduleTypeCards.map(({ key, label, desc, Icon: TypeIcon }) => (
+                  <button type="button" key={key} onClick={() => setScheduleType(key)} disabled={locked}
+                    className={cx(
+                      "text-left rounded-lg p-3 transition disabled:cursor-not-allowed",
+                      scheduleType === key ? "border-2 border-brand-500 bg-brand-50/30" : "border border-slate-200 hover:border-slate-300"
+                    )}>
+                    <div className="flex items-start gap-2.5">
+                      <TypeIcon size={20} className={cx("flex-shrink-0 mt-0.5", scheduleType === key ? "text-brand-700" : "text-slate-500")} strokeWidth={scheduleType === key ? 2 : 1.8} />
+                      <div>
+                        <div className={cx("text-xs", scheduleType === key ? "font-semibold text-brand-800" : "font-medium text-slate-700")}>{label}</div>
+                        <p className="text-[11px] text-slate-500 mt-1 leading-snug">{desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {scheduleType === "specific" && (
+              <Field label="Schedule Date" className="w-full sm:w-64">
+                <div className="relative">
+                  <input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} disabled={locked} className={inputCls} />
+                </div>
+              </Field>
+            )}
+
+            {scheduleType === "between" && (
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Start Date"><input type="date" value={betweenStart} onChange={(e) => setBetweenStart(e.target.value)} disabled={locked} className={inputCls} /></Field>
+                <Field label="End Date"><input type="date" value={betweenEnd} onChange={(e) => setBetweenEnd(e.target.value)} disabled={locked} className={inputCls} /></Field>
+              </div>
+            )}
+
+            {scheduleType === "recurring" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Frequency">
+                    <select value={frequency} onChange={(e) => setFrequency(e.target.value)} disabled={locked} className={selectCls}>
+                      <option>Weekly</option><option>Every 2 Weeks</option><option>Monthly</option><option>Custom</option>
+                    </select>
+                  </Field>
+                  <Field label="Repeat Every">
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="1" value={interval} onChange={(e) => setInterval_(e.target.value)} disabled={locked} className={cx(inputCls, "w-16 text-center")} />
+                      <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 whitespace-nowrap">Week(s)</span>
+                    </div>
+                  </Field>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                  <Field label="Start Date">
+                    <input type="date" value={recurStart} onChange={(e) => setRecurStart(e.target.value)} disabled={locked} className={inputCls} />
+                  </Field>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-2">End Date</label>
+                    <div className="space-y-2 text-xs">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" checked={endType === "none"} onChange={() => setEndType("none")} disabled={locked} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-600 border-slate-300" />
+                        <span className="font-medium text-slate-800">No End Date</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" checked={endType === "after"} onChange={() => setEndType("after")} disabled={locked} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-600 border-slate-300" />
+                        <span className="font-medium text-slate-600">End After</span>
+                        <input type="number" min="1" value={occurrences} onChange={(e) => setOccurrences(e.target.value)} disabled={locked || endType !== "after"}
+                          className="w-14 py-0.5 px-2 text-xs text-center border border-slate-300 rounded-md text-slate-700 shadow-sm disabled:bg-slate-50 disabled:text-slate-400" />
+                        <span className="text-[11px] text-slate-400">occurrences</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" checked={endType === "by"} onChange={() => setEndType("by")} disabled={locked} className="w-3.5 h-3.5 text-brand-600 focus:ring-brand-600 border-slate-300" />
+                        <span className="font-medium text-slate-600">End By</span>
+                        <input type="date" value={endByDate} onChange={(e) => setEndByDate(e.target.value)} disabled={locked || endType !== "by"}
+                          className="py-0.5 px-2 text-xs border border-slate-300 rounded-md text-slate-700 shadow-sm disabled:bg-slate-50 disabled:text-slate-400" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Technicians */}
+          <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex-1 flex flex-col">
+            <h2 className="text-sm font-semibold text-slate-900 mb-3">3. Technicians to Use</h2>
+            {chosenRecords.length === 0 ? (
+              <p className="text-xs text-slate-400">Select {sourceType === "jobs" ? "jobs" : "clients"} first to see technician suggestions.</p>
+            ) : (
+              <React.Fragment>
+                <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3">
+                  <div className="relative flex-1 min-w-[160px]">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                      <SearchIcon size={14} />
+                    </div>
+                    <input value={techQuery} onChange={(e) => setTechQuery(e.target.value)} disabled={locked} placeholder="Search technician..."
+                      className="block w-full pl-8 pr-2.5 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 disabled:cursor-not-allowed" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative">
+                      <select value={techRegionFilter} onChange={(e) => setTechRegionFilter(e.target.value)} disabled={locked}
+                        className="appearance-none pr-6 pl-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-60">
+                        <option value="All">Region</option>
+                        {REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                      <ChevronDownIcon size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <div className="relative">
+                      <select value={techSkillFilter} onChange={(e) => setTechSkillFilter(e.target.value)} disabled={locked}
+                        className="appearance-none pr-6 pl-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-60">
+                        <option value="All">Skill</option>
+                        <option>Maintenance</option><option>Installation</option><option>Repair</option>
+                      </select>
+                      <ChevronDownIcon size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <div className="relative">
+                      <select value={techTeamFilter} onChange={(e) => setTechTeamFilter(e.target.value)} disabled={locked}
+                        className="appearance-none pr-6 pl-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-60">
+                        <option value="All">Team</option>
+                        {TEAMS.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <ChevronDownIcon size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <button type="button" onClick={() => setTechPanelOpen((v) => !v)} disabled={locked}
+                      className={cx("p-1.5 rounded-lg border disabled:opacity-60", techPanelOpen ? "text-brand-700 bg-emerald-50 border-brand-500" : "text-slate-600 bg-white border-slate-200 hover:bg-slate-50")}>
+                      <FilterIcon size={14} />
+                    </button>
+                  </div>
+                  <div className="text-xs font-semibold text-brand-700 ml-auto whitespace-nowrap">{selectedTechs.size} selected</div>
+                </div>
+                {techPanelOpen && (
+                  <label className="flex items-center gap-2 text-xs text-slate-600 mb-3 px-2.5 py-2 bg-slate-50 rounded-lg cursor-pointer">
+                    <input type="checkbox" checked={techStatusOnlyAvailable} onChange={(e) => setTechStatusOnlyAvailable(e.target.checked)} disabled={locked}
+                      className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600" />
+                    Only show technicians who are Available
+                  </label>
+                )}
+
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <div className="max-h-[230px] overflow-y-auto">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 sticky top-0">
+                      <tr>
+                        <th className="py-2.5 pl-3 pr-1 w-6"></th>
+                        <th className="py-2.5 px-2">Technician</th>
+                        <th className="py-2.5 px-2">Region</th>
+                        <th className="py-2.5 px-2">Skills</th>
+                        <th className="py-2.5 pr-3 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {matchedTechs.map((t) => (
+                        <tr key={t.id} className={cx("hover:bg-slate-50/70 transition cursor-pointer", t.status === "Busy" && "opacity-60")}
+                          onClick={() => !locked && toggleTech(t.id)}>
+                          <td className="py-2.5 pl-3 pr-1">
+                            <input type="checkbox" checked={selectedTechs.has(t.id)} onChange={() => toggleTech(t.id)} disabled={locked} onClick={(e) => e.stopPropagation()}
+                              className="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-600 disabled:cursor-not-allowed" />
+                          </td>
+                          <td className="py-2.5 px-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background: t.color }}>
+                                {initials(t.name)}
+                              </div>
+                              <span className="font-medium text-slate-900 whitespace-nowrap">{t.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-2 text-slate-600">{t.region}</td>
+                          <td className="py-2.5 px-2 text-slate-600">{t.skills.join(", ")}</td>
+                          <td className="py-2.5 pr-3 text-right">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 whitespace-nowrap">
+                              <span className={cx("w-1.5 h-1.5 rounded-full", t.status === "Available" ? "bg-emerald-600" : "bg-amber-500")}></span>
+                              {t.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {matchedTechs.length === 0 && (
+                        <tr><td colSpan="5" className="py-4 px-3 text-center text-rose-500">No matching technicians found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              </React.Fragment>
+            )}
+
+            {stage === "select" && (
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <button type="button" onClick={() => runOptimize()} disabled={!canRunPreview}
+                  className={cx(
+                    "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition shadow-sm",
+                    canRunPreview ? "bg-brand-700 hover:bg-brand-800 text-white shadow-emerald-900/10" : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  )}>
+                  <RocketIcon size={16} /> Optimize
+                </button>
+                {!canRunPreview && (
+                  <p className="text-[11px] text-rose-500 mt-2">Select at least one client, a schedule date, and one technician to continue.</p>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {/* ============ OPTIMIZING ============ */}
+      {stage === "optimizing" && (
+        <div className="mt-5 rounded-xl border border-slate-200 bg-white shadow-sm p-8 flex flex-col items-center gap-3">
+          <LoaderIcon size={22} className="text-brand-600" />
+          <p className="text-sm font-medium text-slate-700">Calculating routes and technician assignments...</p>
+          <p className="text-xs text-slate-400">Evaluating {chosenRecords.length.toLocaleString()} record(s) · {selectedTechs.size} technician(s)</p>
+        </div>
+      )}
+
+      {/* ============ OPTIMIZATION PREVIEW ============ */}
+      {(stage === "preview" || stage === "done") && (
+        <section className="mt-5 bg-white border border-slate-200 rounded-xl shadow-sm p-4 md:p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-slate-900">Optimization Preview</h2>
+            {stage === "done" && (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700">
+                <CheckCircleIcon size={16} /> {finalAction === "dispatched" ? "Schedule & Dispatch complete" : "Schedule created"}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-12 gap-3 items-center">
+            <div className="col-span-12 sm:col-span-4 space-y-2.5 pr-2">
+              {[
+                ["Selected Records", plan.length.toLocaleString()],
+                ["Technicians", selectedTechs.size],
+                ["Estimated Duration", estDurationDays + " days"],
+                ["Total Distance", totalDistance + " km"],
+                ["Total Visits", plan.length.toLocaleString()],
+              ].map(([label, val]) => (
+                <div key={label}>
+                  <div className="text-[11px] font-medium text-slate-400 uppercase tracking-tight">{label}</div>
+                  <div className="text-base font-bold text-slate-900">{val}</div>
+                </div>
+              ))}
+            </div>
+            <OptimizationMap />
+          </div>
+
+          {/* Plan table */}
+          <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+            <div className="max-h-[260px] overflow-y-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 sticky top-0">
+                  <tr>
+                    <th className="py-2.5 px-3">#</th>
+                    <th className="py-2.5 px-3">Client</th>
+                    <th className="py-2.5 px-3">Technician</th>
+                    <th className="py-2.5 px-3">Time</th>
+                    <th className="py-2.5 px-3">Distance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {plan.map((row) => (
+                    <tr key={row.client.id}>
+                      <td className="py-2 px-3 text-slate-500">{row.sequence}</td>
+                      <td className="py-2 px-3 font-semibold text-slate-900 whitespace-nowrap">{row.client.name}</td>
+                      <td className="py-2 px-3 text-slate-600 whitespace-nowrap">{row.tech.name}</td>
+                      <td className="py-2 px-3 text-slate-600">{row.time}</td>
+                      <td className="py-2 px-3 text-slate-600">{row.distanceKm} km</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2.5">
+            {stage === "preview" ? (
+              <React.Fragment>
+                <button type="button" onClick={() => finalize("scheduled")}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition">
+                  <CalendarIcon size={15} className="text-emerald-600" /> Schedule
+                </button>
+                <button type="button" onClick={() => finalize("dispatched")}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-medium text-white bg-brand-700 hover:bg-brand-800 rounded-lg shadow-sm transition shadow-emerald-900/10">
+                  <DispatchIcon size={15} /> Schedule &amp; Dispatch
+                </button>
+              </React.Fragment>
+            ) : (
+              <button type="button" onClick={reset}
+                className="inline-flex items-center gap-2 px-4 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition">
+                <XIcon size={15} /> Start Over
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<BulkScheduleClient />);
+</script>
+</body>
+</html>
