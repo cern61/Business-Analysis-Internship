@@ -3,12 +3,11 @@
 # 📊 Business Analysis Internship Portfolio
 
 **Research · Product Analysis · UI Prototype**
+
 Work produced during my internship at **Evatro**
 
 ![Role](https://img.shields.io/badge/Role-Business_Analyst_Intern-2E75B6?style=for-the-badge)
-![Company](https://img.shields.io/badge/Company-Evatro-1F3A5F?style=for-the-badge)
-![React](https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Company](https://img.shields.io/badge/Company-Evatro-1F3A5F?style=for-the-badge&logo=evatro&logoColor=red)
 
 <div align="center">
   <img src="images/evatro_logo.jpg" alt="Evatro" width="500">
@@ -30,7 +29,7 @@ Work produced during my internship at **Evatro**
 | | Deliverable | What it is |
 |---|---|---|
 | 📚 | [**Business Analysis Research**](Business_Analysis_Research.pdf) | Core BA concepts + a YouTube subtitles case study |
-| 🔎 | [**FieldPie Application Analysis**](docs/FieldPie_Application_Analysis.pdf) | 7 UX findings, from root cause to test case *(Turkish)* |
+| 🔎 | [**FieldPie Application Analysis**](docs/FieldPie_Application_Analysis.pdf) | 7 UX findings, from root cause to test case |
 | 🖥️ | [**Bulk Schedule & Dispatch**](BulkSchedule.html) | Interactive UI prototype, no build step |
 
 ---
@@ -65,14 +64,14 @@ Every finding goes through the same **10-step loop**:
 
 A single-file prototype for scheduling and dispatching field work in bulk.
 
-- 🔀 **Clients or Jobs** mode
+- 🔀 **Clients and Jobs** mode
 - 🔍 Search, quick filters, advanced filters, pagination
 - 📅 **Specific, range, or recurring** schedules
 - 👷 Technician picker (region, skill, team, availability)
 - 💾 Reusable **templates**
 - 🚀 `Select → Optimize → Preview → Schedule / Dispatch`
 
-| 🖥️ | [**Bulk Schedule & Dispatch**](BulkSchedule.html) | Interactive UI prototype, no build step |
+                  | 🖥️ | [**Bulk Schedule & Dispatch**](BulkSchedule.html) | Interactive UI prototype, no build step |
 
 <div align="center">
   <img src="images/bulk_schedule.png" alt="Bulk" width="600">
@@ -84,7 +83,7 @@ A single-file prototype for scheduling and dispatching field work in bulk.
 
 ## 🧠 Key Learnings
 
-**Requirements writing** · **Root cause analysis** · **Test design** · **Stakeholder communication** · **React UI prototyping**
+**Requirements writing** · **Root cause analysis** · **Producing solutions** · **Test design** · **React UI prototyping**
 
 ---
 
