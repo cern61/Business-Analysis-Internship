@@ -11,7 +11,7 @@ Work produced during my internship at **Evatro**
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
 <div align="center">
-  <img src="images/evatro.jpg" alt="Evatro" width="600">
+  <img src="images/evatro_logo.jpg" alt="Evatro" width="600">
 </div>
 </div>
 
