@@ -9,7 +9,9 @@ Work produced during my internship at **Evatro**
 ![Company](https://img.shields.io/badge/Company-Evatro-1F3A5F?style=for-the-badge)
 ![React](https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-
+<div align="center">
+  <img src="images/evatro.png" alt="Evatro" width="400">
+</div>
 </div>
 
 ---
@@ -26,17 +28,9 @@ Work produced during my internship at **Evatro**
 
 | | Deliverable | What it is |
 |---|---|---|
-| 📚 | [**Business Analysis Research**](docs/Business_Analysis_Research.pdf) | Core BA concepts + a YouTube subtitles case study |
+| 📚 | [**Business Analysis Research**](Business_Analysis_Research.pdf) | Core BA concepts + a YouTube subtitles case study |
 | 🔎 | [**FieldPie Application Analysis**](docs/FieldPie_Application_Analysis.pdf) | 7 UX findings, from root cause to test case *(Turkish)* |
-| 🖥️ | [**Bulk Schedule & Dispatch**](prototype/index.html) | Interactive UI prototype, no build step |
-
-```
-├── docs/
-│   ├── Business_Analysis_Research.pdf
-│   └── FieldPie_Application_Analysis.pdf
-└── prototype/
-    └── index.html
-```
+| 🖥️ | [**Bulk Schedule & Dispatch**](BulkSchedule.html) | Interactive UI prototype, no build step |
 
 ---
 
@@ -54,15 +48,15 @@ Every finding goes through the same **10-step loop**:
 
 `Problem` → `Current State` → `User Impact` → `Root Cause` → `Solution` → `Priority` → `Requirement` → `User Story` → `Acceptance Criteria` → `Test Cases`
 
-| # | Finding | Priority |
-|:-:|---------|:--------:|
-| 1 | AI chat window blocks the UI it points to | 🟠 High |
-| 2 | "Send" and "AI Chat" buttons overlap | 🟠 High |
-| 3 | Chart editor's Save/Cancel buttons hidden below the fold | 🟠 High |
-| 4 | "Add Table" copies existing data instead of creating an empty table | 🔴 Critical |
-| 5 | Generic "An error occurred." on column selection | 🟠 High |
-| 6 | "Auto E-mail" never explains trigger or content | 🟡 Medium |
-| 7 | "Task" notification filter returns nothing | 🔴 Critical |
+| # | Finding | Proposed Solution |
+|:-:|---------|-------------------|
+| 1 | AI chat window blocks the UI it points to | Make the chat window resizable and movable |
+| 2 | "Send" and "AI Chat" buttons overlap | Add enough spacing between the two buttons |
+| 3 | Chart editor's Save/Cancel buttons hidden below the fold | Pin Save, Cancel, Delete, Clear in a fixed top bar |
+| 4 | "Add Table" copies existing data instead of creating an empty table | Create a truly empty table and auto-sync entered data to related modules |
+| 5 | Generic "An error occurred." on column selection | Show a specific error naming the failing column(s) |
+| 6 | "Auto E-mail" never explains trigger or content | Add an info icon explaining trigger, frequency, and content |
+| 7 | "Task" notification filter returns nothing | Fix the mapping between the filter label and the backend category value |
 
 ---
 
@@ -93,7 +87,7 @@ open prototype/index.html      # or: python3 -m http.server 8000
 
 <div align="center">
 
-**[Your Name]** · [LinkedIn](https://www.linkedin.com/in/your-profile) · [Email](mailto:your.email@example.com)
+**[Your Name]** · [LinkedIn](https://www.linkedin.com/in/ceren-naz-dervi%C5%9Fo%C4%9Flu-413b54244/?isSelfProfile=true) 
 
 <sub>Internship portfolio. Views are my own, not an official Evatro publication.</sub>
 
