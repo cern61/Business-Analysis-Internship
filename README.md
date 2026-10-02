@@ -11,7 +11,7 @@ Work produced during my internship at **Evatro**
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
 <div align="center">
-  <img src="images/evatro_logo.jpg" alt="Evatro" width="600">
+  <img src="images/evatro_logo.jpg" alt="Evatro" width="400">
 </div>
 </div>
 
@@ -73,8 +73,11 @@ A single-file prototype for scheduling and dispatching field work in bulk.
 - 🚀 `Select → Optimize → Preview → Schedule / Dispatch`
 
 ```bash
-open prototype/index.html      # or: python3 -m http.server 8000
+open BulkSchedule.html      # or: python3 -m http.server 8000
 ```
+<div align="center">
+  <img src="images/bulk_schedule.png" alt="Bulk" width="400">
+</div>
 
 > ℹ️ Uses mock data and a simulated optimization step. No backend. Internet needed for CDN scripts.
 
@@ -88,7 +91,7 @@ open prototype/index.html      # or: python3 -m http.server 8000
 
 <div align="center">
 
-**[Your Name]** · [LinkedIn](https://www.linkedin.com/in/ceren-naz-dervi%C5%9Fo%C4%9Flu-413b54244/?isSelfProfile=true) 
+**[Ceren Naz Dervişoğlu]** · [LinkedIn](https://www.linkedin.com/in/ceren-naz-dervi%C5%9Fo%C4%9Flu-413b54244/?isSelfProfile=true) 
 
 <sub>Internship portfolio. Views are my own, not an official Evatro publication.</sub>
 
