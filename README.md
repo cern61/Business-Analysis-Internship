@@ -11,7 +11,7 @@ Work produced during my internship at **Evatro**
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
 <div align="center">
-  <img src="images/evatro_logo.jpg" alt="Evatro" width="600">
+  <img src="images/evatro_logo.jpg" alt="Evatro" width="500">
 </div>
 </div>
 
@@ -75,7 +75,7 @@ A single-file prototype for scheduling and dispatching field work in bulk.
 | 🖥️ | [**Bulk Schedule & Dispatch**](BulkSchedule.html) | Interactive UI prototype, no build step |
 
 <div align="center">
-  <img src="images/bulk_schedule.png" alt="Bulk" width="400">
+  <img src="images/bulk_schedule.png" alt="Bulk" width="600">
 </div>
 
 > ℹ️ Uses mock data and a simulated optimization step. No backend. Internet needed for CDN scripts.
