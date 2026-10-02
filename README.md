@@ -9,8 +9,9 @@ Work produced during my internship at **Evatro**
 ![Company](https://img.shields.io/badge/Company-Evatro-1F3A5F?style=for-the-badge)
 ![React](https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+
 <div align="center">
-  <img src="images/evatro.png" alt="Evatro" width="400">
+  <img src="images/evatro.jpg alt="Evatro" width="400">
 </div>
 </div>
 
